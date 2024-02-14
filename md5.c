@@ -2,12 +2,15 @@
 #include <stdio.h>
 #include <string.h>
 
+// These are the constants as defined in the Step 4 of the RFC
+// First the shift amounts:
 static uint32_t S[] = {7,  12, 17, 22, 7,  12, 17, 22, 7,  12, 17, 22, 7,
                        12, 17, 22, 5,  9,  14, 20, 5,  9,  14, 20, 5,  9,
                        14, 20, 5,  9,  14, 20, 4,  11, 16, 23, 4,  11, 16,
                        23, 4,  11, 16, 23, 4,  11, 16, 23, 6,  10, 15, 21,
                        6,  10, 15, 21, 6,  10, 15, 21, 6,  10, 15, 21};
 
+// And then the 64-element table constructed from the sine function:
 static uint32_t K[] = {
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a,
     0xa8304613, 0xfd469501, 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
@@ -21,7 +24,7 @@ static uint32_t K[] = {
     0xffeff47d, 0x85845dd1, 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
     0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391};
 
-// These are the auxiliary functions defined in step 4 of the RFC
+// These are the auxiliary functions defined in step 4 of the RFC:
 #define F(X, Y, Z) ((X & Y) | (~X & Z))
 #define G(X, Y, Z) ((X & Z) | (Y & ~Z))
 #define H(X, Y, Z) (X ^ Y ^ Z)
@@ -37,9 +40,9 @@ uint32_t to_32bit_word(uint8_t *a, int offset) {
          (uint32_t)(a[offset + 1]) << 8 | (uint32_t)(a[offset]);
 }
 
-/*
- * Step on 512 bits of input with the main MD5 algorithm.
- */
+// This is the step that should be done for each 16-word block, as described in
+// the RFC. This particular implementation is extracted from
+// https://github.com/Zunawe/md5-c/blob/main/md5.c
 void md5Step(uint32_t *buffer, uint32_t *input) {
   uint32_t AA = buffer[0];
   uint32_t BB = buffer[1];
@@ -83,7 +86,7 @@ void md5Step(uint32_t *buffer, uint32_t *input) {
   buffer[3] += DD;
 }
 
-void md5(char *input, uint8_t *result) {
+void md5(uint8_t *input, uint8_t *result) {
   // The Step 1 and 2 of the RFC tell us to append padding bits (section 3.1)
   // and append message length (section 3.2). However, in an actual
   // implementation, it is easier to just start processing the input in blocks
@@ -101,7 +104,7 @@ void md5(char *input, uint8_t *result) {
   uint32_t md5_buffer[4] = {0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476};
 
   uint64_t total_bytes_processed = 0;
-  size_t input_len = strlen(input);
+  size_t input_len = strlen((char *)input);
 
   // The Step 4 consist in procesing the message in 512-bit blocks.
   // For each block, we call md5_step function to update the MD5 buffer.
@@ -204,71 +207,37 @@ void md5(char *input, uint8_t *result) {
   }
 }
 
-void print_hash(uint8_t *p) {
+void digest_and_display(char *message, char *expected_digest) {
+  uint8_t result[16];
+  md5((uint8_t *)message, result);
+
+  printf("message =%s\n", message);
+  printf("expected=%s\n", expected_digest);
+  printf("result  =");
   for (unsigned int i = 0; i < 16; ++i) {
-    printf("%02x", p[i]);
+    printf("%02x", result[i]);
   }
+  printf("\n");
 }
 
 int main() {
-  uint8_t result[16];
-
-  printf("\n");
-  md5("", result);
-  printf("expected=d41d8cd98f00b204e9800998ecf8427e\n");
-  printf("result  =");
-  print_hash(result);
-  printf("\n");
-
-  printf("abc\n");
-  md5("abc", result);
-  printf("expected=900150983cd24fb0d6963f7d28e17f72\n");
-  printf("result  =");
-  print_hash(result);
-  printf("\n");
-
-  printf("Hello, world!\n");
-  md5("Hello, world!", result);
-  printf("expected=6cd3556deb0da54bca060b4c39479839\n");
-  printf("result  =");
-  print_hash(result);
-  printf("\n");
-
-  printf(
+  digest_and_display("", "d41d8cd98f00b204e9800998ecf8427e");
+  digest_and_display("abc", "900150983cd24fb0d6963f7d28e17f72");
+  digest_and_display("Hello, World!", "65a8e27d8879283831b664bd8b7f0ad4");
+  digest_and_display(
       "Hello, world! This is a very long message, let's see which case it "
-      "triggers\n");
-  md5("Hello, world! This is a very long message, let's see which case it "
       "triggers",
-      result);
-  printf("expected=1230651953c4adc13d4e3e345871713d\n");
-  printf("result  =");
-  print_hash(result);
-  printf("\n");
-
-  printf(
+      "1230651953c4adc13d4e3e345871713d");
+  digest_and_display(
       "Hello, world! This is a very long message, let's see which case it "
-      "triggers. Again, again, again, again, 123456789012345678901\n");
-  md5("Hello, world! This is a very long message, let's see which case it "
       "triggers. Again, again, again, again, 123456789012345678901",
-      result);
-  printf("expected=b40cb5c7cbc13ed764928da30c8e72a9\n");
-  printf("result  =");
-  print_hash(result);
-  printf("\n");
-
-  printf(
+      "b40cb5c7cbc13ed764928da30c8e72a9");
+  digest_and_display(
       "extremely-long-message-extremely-long-message-extremely-long-"
       "message-extremely-long-message-extremely-long-message-extremely-"
       "long-message-extremely-long-message-extremely-long-message-"
-      "extremely-long-message\n");
-  md5("extremely-long-message-extremely-long-message-extremely-long-message-"
-      "extremely-long-message-extremely-long-message-extremely-long-message-"
-      "extremely-long-message-extremely-long-message-extremely-long-message",
-      result);
-  printf("expected=0e45ed9e1a8538a974be2d073e0433fd\n");
-  printf("result  =");
-  print_hash(result);
-  printf("\n");
+      "extremely-long-message",
+      "0e45ed9e1a8538a974be2d073e0433fd");
 
   return 0;
 }
