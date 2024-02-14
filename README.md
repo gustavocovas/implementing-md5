@@ -9,7 +9,7 @@ However, it will not necessarily help you understanding **why** the algorithm wo
 
 > Of course, this is by no means meant to be used in production. You probably shouldn't be using MD5 anyway.
 
-Apart from the original RFC, the main resource that I used to complete this project was [Zunawe's implementation](https://github.com/Zunawe/md5-c). I took some time to understand some of his decisions but found them to be ingenious in the end. Thanks, @Zunaewe! I ended up following a different path, however.
+Apart from the original RFC, the main resource that I used to complete this project was [Zunawe's implementation](https://github.com/Zunawe/md5-c). I took some time to understand some of his decisions but found them to be ingenious in the end. Thanks, @Zunawe! I ended up following a different path, however.
 
 ## Compiling and running
 
@@ -29,6 +29,8 @@ result  =65a8e27d8879283831b664bd8b7f0ad4
 ```
 
 ## The implementation
+
+You should start by reading [the original RFC](https://datatracker.ietf.org/doc/html/rfc1321). It is extremely well-written and not at all hard to follow.
 
 The MD5 algorithm consists of 4 main steps:
 
